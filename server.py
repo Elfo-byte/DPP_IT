@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+
 import os
 import csv
 
@@ -199,18 +200,193 @@ def get_movies(db: Session = Depends(get_db)):
     movies = db.query(MovieDB).all()
     return movies
 
+@app.post("/movies", response_model=Movie, status_code=201)
+def create_movie(movie: Movie, db: Session = Depends(get_db)):
+    # ignorujemy ewentualne id z requestu
+    movie_data = movie.dict(exclude={"id"})
+    db_movie = MovieDB(**movie_data)
+    db.add(db_movie)
+    db.commit()
+    db.refresh(db_movie)
+    return db_movie
+
+
+@app.get("/movies/{movie_id}", response_model=Movie)
+def get_movie(movie_id: int, db: Session = Depends(get_db)):
+    # korzystamy z "biznesowego" movieId, nie z auto-id
+    db_movie = db.query(MovieDB).filter(MovieDB.movieId == movie_id).first()
+    if db_movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return db_movie
+
+
+@app.put("/movies/{movie_id}", response_model=Movie)
+def update_movie(movie_id: int, movie: Movie, db: Session = Depends(get_db)):
+    db_movie = db.query(MovieDB).filter(MovieDB.movieId == movie_id).first()
+    if db_movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    for field, value in movie.dict(exclude={"id"}).items():
+        setattr(db_movie, field, value)
+
+    db.commit()
+    db.refresh(db_movie)
+    return db_movie
+
+
+@app.delete("/movies/{movie_id}", status_code=204)
+def delete_movie(movie_id: int, db: Session = Depends(get_db)):
+    db_movie = db.query(MovieDB).filter(MovieDB.movieId == movie_id).first()
+    if db_movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    db.delete(db_movie)
+    db.commit()
+    return Response(status_code=204)
+
+
 
 @app.get("/ratings", response_model=List[Rating])
 def get_ratings(db: Session = Depends(get_db)):
     ratings = db.query(RatingDB).all()
     return ratings
 
+@app.post("/ratings", response_model=Rating, status_code=201)
+def create_rating(rating: Rating, db: Session = Depends(get_db)):
+    rating_data = rating.dict(exclude={"id"})
+    db_rating = RatingDB(**rating_data)
+    db.add(db_rating)
+    db.commit()
+    db.refresh(db_rating)
+    return db_rating
+
+
+@app.get("/ratings/{rating_id}", response_model=Rating)
+def get_rating(rating_id: int, db: Session = Depends(get_db)):
+    db_rating = db.query(RatingDB).filter(RatingDB.id == rating_id).first()
+    if db_rating is None:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    return db_rating
+
+
+@app.put("/ratings/{rating_id}", response_model=Rating)
+def update_rating(rating_id: int, rating: Rating, db: Session = Depends(get_db)):
+    db_rating = db.query(RatingDB).filter(RatingDB.id == rating_id).first()
+    if db_rating is None:
+        raise HTTPException(status_code=404, detail="Rating not found")
+
+    for field, value in rating.dict(exclude={"id"}).items():
+        setattr(db_rating, field, value)
+
+    db.commit()
+    db.refresh(db_rating)
+    return db_rating
+
+
+@app.delete("/ratings/{rating_id}", status_code=204)
+def delete_rating(rating_id: int, db: Session = Depends(get_db)):
+    db_rating = db.query(RatingDB).filter(RatingDB.id == rating_id).first()
+    if db_rating is None:
+        raise HTTPException(status_code=404, detail="Rating not found")
+
+    db.delete(db_rating)
+    db.commit()
+    return Response(status_code=204)
+
+
+
+
 @app.get("/links", response_model=List[links])
 def get_links(db: Session = Depends(get_db)):
     links = db.query(linksDB).all()
     return links
 
+@app.post("/links", response_model=links, status_code=201)
+def create_link(link: links, db: Session = Depends(get_db)):
+    link_data = link.dict(exclude={"id"})
+    db_link = linksDB(**link_data)
+    db.add(db_link)
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+
+@app.get("/links/{movie_id}", response_model=links)
+def get_link(movie_id: int, db: Session = Depends(get_db)):
+    db_link = db.query(linksDB).filter(linksDB.movieId == movie_id).first()
+    if db_link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+    return db_link
+
+
+@app.put("/links/{movie_id}", response_model=links)
+def update_link(movie_id: int, link: links, db: Session = Depends(get_db)):
+    db_link = db.query(linksDB).filter(linksDB.movieId == movie_id).first()
+    if db_link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+
+    for field, value in link.dict(exclude={"id"}).items():
+        setattr(db_link, field, value)
+
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+
+@app.delete("/links/{movie_id}", status_code=204)
+def delete_link(movie_id: int, db: Session = Depends(get_db)):
+    db_link = db.query(linksDB).filter(linksDB.movieId == movie_id).first()
+    if db_link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+
+    db.delete(db_link)
+    db.commit()
+    return Response(status_code=204)
+
+
 @app.get("/tags", response_model=List[Tags])
 def get_tags(db: Session = Depends(get_db)):
     tags = db.query(TagsDB).all()
     return tags
+
+@app.post("/tags", response_model=Tags, status_code=201)
+def create_tag(tag: Tags, db: Session = Depends(get_db)):
+    tag_data = tag.dict(exclude={"id"})
+    db_tag = TagsDB(**tag_data)
+    db.add(db_tag)
+    db.commit()
+    db.refresh(db_tag)
+    return db_tag
+
+
+@app.get("/tags/{tag_id}", response_model=Tags)
+def get_tag(tag_id: int, db: Session = Depends(get_db)):
+    db_tag = db.query(TagsDB).filter(TagsDB.id == tag_id).first()
+    if db_tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return db_tag
+
+
+@app.put("/tags/{tag_id}", response_model=Tags)
+def update_tag(tag_id: int, tag: Tags, db: Session = Depends(get_db)):
+    db_tag = db.query(TagsDB).filter(TagsDB.id == tag_id).first()
+    if db_tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    for field, value in tag.dict(exclude={"id"}).items():
+        setattr(db_tag, field, value)
+
+    db.commit()
+    db.refresh(db_tag)
+    return db_tag
+
+
+@app.delete("/tags/{tag_id}", status_code=204)
+def delete_tag(tag_id: int, db: Session = Depends(get_db)):
+    db_tag = db.query(TagsDB).filter(TagsDB.id == tag_id).first()
+    if db_tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    db.delete(db_tag)
+    db.commit()
+    return Response(status_code=204)
