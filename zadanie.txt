@@ -1,0 +1,35 @@
+A jak w ogóle skalować aplikację? Jak stworzyć kilka instancji
+aplikacji?
+Rozwiązań jest kilka:
+1. Zastosowanie klastra kubernetes, stworzenie deploymentu naszej aplikacji na
+klaster, a w nim zdefiniowanie liczby replik.
+2. Zastosowanie aplikacji docker compose, a w niej zdefiniowanie liczby replik
+(parametr replicas )
+3. (Mniej zalecane) dla aplikacji bez obrazu dockerowego można zastosować
+linuxowy menadżer usług systemd
+Ale o tym, to już na innych zajęciach...
+
+Kolejkowanie - wprowadzenie do tematyki 4
+
+Zadanie do wykonania - kolejkowanie rozmów na
+plikach, wymagania:
+1. Należy stworzyć 2 pliki uruchomieniowe:
+a. producer.py - plik odpowiedzialny za zapisywanie do pliku (txt lub csv)
+pracy do wykonania.
+b. consumer.py - plik odpowiedzialny za wykonywanie zapisanej pracy.
+2. Uruchomienie producera ma skutkować zapisem do pliku 1 rekordu
+odpowiadającego 1 pracy (np. 1 rozmowie telefonicznej).
+3. Wykonanie każdej pracy trwa 30s.
+4. Consumer ma byś stale uruchomiony (while true) i co np. 5s odczytywać plik i
+sprawdzać czy nie ma jakiejś pracy do wykonania.
+5. Jeśli Consumer napotka w pliku pracę do wykonania to ją “Konsumuje” i
+zaczyna ją wykonywać, po uprzedniej zmianie statusu pracy.
+6. W pliku każda praca ma mieć określony status z 3 możliwych:
+a. pending - praca czeka na consumera (takiego operatora), praca z takim
+statusem jest zapisywana przez producera.
+b. in_progress - praca została pobrana/skonsumowana przez konsumera.
+c. done - praca została wykonana przez konsumera.
+7. Wrzucić na “kolejke” 100 zadań do wykonania i uruchomić kilku konsumerów
+do pracy.
+
+Zadanie ma zostać umieszczone na branchu queues_on_files
