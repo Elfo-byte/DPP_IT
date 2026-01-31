@@ -1,0 +1,59 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+      QUEUE_NAME: images
+      UPLOAD_DIR: /shared/uploads
+      DB_PATH: /shared/results.db
+      ANNOTATIONS_PATH: /app/app/annotations.xml
+    volumes:
+      - shared_data:/shared
+      - ./annotations.xml:/app/app/annotations.xml:ro
+      - ./api/app:/app/app
+      # opcjonalnie: żeby łatwo podmieniać annotations.xml bez rebuilda
+      # - ./api/app/annotations.xml:/app/app/annotations.xml:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    build: ./worker
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+      QUEUE_NAME: images
+      UPLOAD_DIR: /shared/uploads
+      DB_PATH: /shared/results.db
+      ANNOTATIONS_PATH: /worker/annotations.xml
+    volumes:
+      - shared_data:/shared
+      - ./annotations.xml:/worker/annotations.xml:ro
+      - ./api/app:/app/app
+      # tu też możesz podmontować ten sam annotations.xml:
+      # - ./api/app/annotations.xml:/worker/annotations.xml:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  shared_data:
